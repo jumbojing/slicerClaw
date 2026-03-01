@@ -83,3 +83,13 @@ SlicerClaw 建立在其背后整个蓬勃向上的 3D Slicer 的 AI 革新生态
 * **[mcp-slicer](https://github.com/zhaoyouj/mcp-slicer)** — 由开发者 @zhaoyouj 实现，目前完全可以通过 `pip` 直接静默部署脱离宿主程序环境外部驻留呼叫原生 3D Slicer 内置网络服务器接口的跨端 MCP 服务器版本。
 * **[SlicerDeveloperAgent](https://github.com/muratmaga/SlicerDeveloperAgent)** — Murat Maga 大牛将类似机制思路接入 Gemini 推理模块让用户不必跳出画面也能对脚本指手画脚的 Slicer 环境内嵌式 AI 操作助手。
 * **[SlicerChat: Building a Local Chatbot for 3D Slicer](https://arxiv.org/abs/2407.11987)** (Barr, 2024) — 在不使用在线庞大计算量为代价，基于本地方案搭建运行 LLM 助手对入门者指导 Slicer 上手的高水平前沿科研探讨文献。
+
+## 🙏 鸣谢 `AI`
+
+特别感谢以下为本项目体验与代码重构全流程提供不可思议支持的技术力量：
+
+* **Antigravity (Google DeepMind)** — 自动理解需求、独立重写了全套全新架构面板并亲手构建了内置极速 MCP 大杀器服务器底层逻辑的超级 AI 编码引擎！
+* **OpenCode** — 搭建了极其优秀的 AI IDE 集成桥接环境，使得外部对话中枢能够丝滑、毫无阻力地接管并控制 3D Slicer 的虚拟世界。
+* **GLM-5 (智谱 AI)** — 赋予这一切原生交互以毫无妥协的中文逻辑推理与原生复杂 Tool Calling 执行能力的顶级基座大模型。
+
+[EOF]
