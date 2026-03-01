@@ -83,3 +83,12 @@ SlicerClaw builds upon and is inspired by a thriving ecosystem of AI integration
 * **[mcp-slicer](https://github.com/zhaoyouj/mcp-slicer)** — A standalone MCP server for 3D Slicer by @zhaoyouj, installable via `pip`. It uses Slicer's built-in WebServer API as a bridge.
 * **[SlicerDeveloperAgent](https://github.com/muratmaga/SlicerDeveloperAgent)** — A Slicer extension by Murat Maga that embeds an AI coding agent directly inside 3D Slicer using Gemini.
 * **[SlicerChat: Building a Local Chatbot for 3D Slicer](https://arxiv.org/abs/2407.11987)** (Barr, 2024) — Explores integrating a locally-run LLM (Code-Llama Instruct) into 3D Slicer to assist users, investigating the effects of domain knowledge on answer quality.
+
+## 🙏 Acknowledgements `AI`
+
+A special thanks to the tools and agents that made this iteration of the project possible:
+
+* **Antigravity (Google DeepMind)** — The powerful AI agent who autonomously reasoned, planned, and rewrote the SlicerClaw architecture, UI, and MCP server backend you see today.
+* **OpenCode** — The brilliant IDE extension bridging the gap between developers and LLMs, making this external MCP workflow so accessible and powerful.
+* **GLM-5 (Zhipu AI)** — The underlying state-of-the-art reasoning model powering the seamless natural language generation and tool execution API.
+  
