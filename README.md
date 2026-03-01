@@ -2,7 +2,7 @@
   <img src="SlicerClaw/Resources/Icons/SlicerClaw.png" width="200" alt="SlicerClaw Logo">
 </p>
 
-# SlicerClaw (Slicer Native AI Agent & MCP Server)
+# 🦞 `SlicerClaw` (Slicer Native AI Agent & MCP Server)
 
 English | [简体中文](README_zh-CN.md)
 
