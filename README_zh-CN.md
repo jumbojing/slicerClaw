@@ -95,8 +95,6 @@ SlicerClaw 建立在其背后整个蓬勃向上的 3D Slicer 的 AI 革新生态
 
 ## 🙏 鸣谢 `AI`
 
-sk-sp-59c0b9fbc0684b438780b9065fb2fb7a
-
 特别感谢以下为本项目体验与代码重构全流程提供不可思议支持的技术力量：
 
 * **Antigravity (Google DeepMind)** — 自动理解需求、独立重写了全套全新架构面板并亲手构建了内置极速 MCP 大杀器服务器底层逻辑的超级 AI 编码引擎！
