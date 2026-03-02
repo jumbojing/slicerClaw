@@ -2,7 +2,7 @@
   <img src="SlicerClaw/Resources/Icons/SlicerClaw.png" width="200" alt="SlicerClaw Logo">
 </p>
 
-# 🦞 `SlicerClaw` (Slicer Native AI Agent & MCP Server)
+# SlicerClaw (Slicer Native AI Agent & MCP Server)
 
 English | [简体中文](README_zh-CN.md)
 
@@ -11,9 +11,9 @@ SlicerClaw provides a seamless, "Spotlight"-style floating command bar for nativ
 
 ## Features
 
-- **Spotlight Interface:** No more clunky, docked panels. Just press `Ctrl+I` (Cmd+I) from anywhere in Slicer to summon a beautiful, translucent floating bar.
-- **Embedded MCP Server:** Safely exposes Slicer's Python environment to external AIs via standard JSON-RPC HTTP requests on `http://127.0.0.1:2016/mcp`.
-- **Function Calling (Tools):** Both native and external AI have direct access to Slicer's Python environment. They can list nodes, get properties, take screenshots, and execute arbitrary python code natively.
+- **Spotlight Floating Console:** Say goodbye to clunky, screen-hogging sidebar skins. Summon a stunning, translucent floating panel from anywhere in Slicer by clicking the toolbar button or just pressing `Ctrl+I` (Cmd+I on Mac).
+- **Embedded MCP Server:** Safely exposes Slicer's mighty Python environment to external AI powerhouses via standard JSON-RPC HTTP requests (`http://127.0.0.1:2016/mcp`).
+- **Native Tool Calling:** Click the 🦞 button in the chat box to enter Slicer Mode! In this mode, both built-in and external AIs have direct access to Slicer's Python runtime. They can list scene nodes, get properties, take screenshots, and execute raw code to orchestrate complex medical 3D scenes.
 - **One-Click MCP Bridge Generator:** Easily generate a `slicer_mcp_bridge.py` script from the UI to seamlessly connect stdio-based AI clients (like Claude/Cursor).
 - **Built-in Knowledge Base Downloader:** Directly download and extract Slicer AI Skills (e.g., `jumbojing/slicerSkill`, Slicer Source Code, Discourse Archives) from the UI to empower your models with 3D Slicer's specific coding context.
 - **Auto Skill Discovery:** The internal MCP tools will automatically search your downloaded skills so external AIs don't have to manually mount the folders.
@@ -31,9 +31,17 @@ SlicerClaw provides a seamless, "Spotlight"-style floating command bar for nativ
 
 ## Usage
 
-### 1. Native Spotlight Chat Setup
-Opening the **SlicerClaw** module from the modules menu reveals 3 main panels. In the first panel, enter your `API Base URL` and `API Key` (e.g., OpenAI or Aliyun Bailian).
-Press **`Ctrl+I`** anywhere in Slicer to summon the Copilot, type your request, and the AI will execute it in the background!
+### 1. Native Spotlight Chat
+Open the **SlicerClaw** module from Slicer's module selector. In the first panel, enter your `API Base URL` and `API Key` (e.g. from OpenAI, Anthropic, or Alibaba Cloud).
+
+> **💡 [First Launch Note]**
+> You can hit the `Spotlight Chat (Cmd/Ctrl+I)` button with the 🧠 icon on the toolbar to **summon** the input box for the first time. Afterwards, you can use the shortcut `Ctrl+I` (Mac: Cmd+I) to bring it up instantly from anywhere.
+
+In the chat box:
+- By default (Dim 🦞 button): The model acts as a **pure text chat**.
+- **Lit 🦞 button**: Enters Slicer operation mode! The AI can securely call native Slicer APIs to analyze or modify the current scene.
+
+Type your request in natural language and the AI will work its magic entirely in the background!
 
 ### 2. External AI Connection (MCP)
 If you prefer using Cursor, OpenCode, or Claude Desktop to control Slicer:
@@ -91,4 +99,3 @@ A special thanks to the tools and agents that made this iteration of the project
 * **Antigravity (Google DeepMind)** — The powerful AI agent who autonomously reasoned, planned, and rewrote the SlicerClaw architecture, UI, and MCP server backend you see today.
 * **OpenCode** — The brilliant IDE extension bridging the gap between developers and LLMs, making this external MCP workflow so accessible and powerful.
 * **GLM-5 (Zhipu AI)** — The underlying state-of-the-art reasoning model powering the seamless natural language generation and tool execution API.
-  

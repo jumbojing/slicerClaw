@@ -11,9 +11,9 @@ SlicerClaw 为您提供了一个无缝的、“Spotlight”风格的悬浮命令
 
 ## ✨ 核心特性
 
-- **Spotlight 悬浮控制台:** 告别笨重、占据屏幕空间的侧边栏皮肤。在 Slicer 内的任何角落只需按下 `Ctrl+I` (Mac 下为 Cmd+I)，即可召唤出绝美的半透明悬浮框。
+- **Spotlight 悬浮控制台:** 告别笨重、占据屏幕空间的侧边栏皮肤。在 Slicer 界面通过点击工具栏按钮，或者在成功启动插件后按下 `Ctrl+I` (Mac 下为 Cmd+I) 即可召唤出绝美的半透明悬浮框。
 - **内嵌的 MCP 服务器:** 通过标准的 JSON-RPC HTTP 请求 (`http://127.0.0.1:2016/mcp`)，将 Slicer 强大的 Python 环境安全地暴露给外部强力 AI 客户端。
-- **原生函数调用 (Tool Calling):** SlicerClaw 内置与外接的 AI 均拥有直接访问 Slicer Python 运行库的权限。它们可以直接列出场景节点、获取节点属性、自动化截图，并在原生环境中执行任何 Python 代码构建复杂的医疗三维场景。
+- **原生函数调用 (Tool Calling):** 请务必在聊天框中点亮 🦞 按钮进入 Slicer 操作模式！在此模式下内置与外接的 AI 均拥有直接访问 Slicer Python 运行库的权限，执行任何 Python 代码构建复杂的医疗三维场景。
 - **一键生成 MCP 桥接器:** 通过自带的可视化 UI 面板，您可以一键生成 `slicer_mcp_bridge.py` 脚本，用来无缝对接基于标准输入输出 (stdio) 的热门外部 AI 客户端。
 - **内置的知识库下载器:** 从 UI 中直接下载并解压 Slicer 的各路 AI 技能库 (Skills)（例如：`jumbojing/slicerSkill`、Slicer 源代码库、官方论坛高阶问答归档），以此赋予缺乏领域知识基座的通用大模型针对 3D Slicer 的“专业字典”。
 - **全自动的知识发现机制:** 内部的 MCP Server 会自动扫描和读取您下载的本地技能知识库。外部请求代码协助的 AI 不再需要手动挂载成百上千篇文档，即可在生成代码前自动搜索并利用。
@@ -33,7 +33,16 @@ SlicerClaw 为您提供了一个无缝的、“Spotlight”风格的悬浮命令
 
 ### 1. 原生 Spotlight 对话配置
 从 3D Slicer 模块选择下拉菜单中打开 **SlicerClaw** 模块。在首个面板中，填入您的 `API Base URL`（API 地址）和 `API Key`（例如使用 OpenAI 或 阿里云百炼的模型密钥）。
-配置完毕后，您可以在 Slicer 界面内的任意位置按下 **`Ctrl+I`** 来召唤 Copilot。在自然语言中输入您的请求，AI 便会在后台开始奇妙的魔法！
+
+> **💡 [首次唤醒注意]**
+> 您可以点击工具栏里带有 🧠 图标的 `Spotlight Chat (Cmd/Ctrl+I)` 按钮来**首次唤醒**悬浮输入框。后续均可在任意位置通过快捷键 `Ctrl+I` (Mac: Cmd+I) 实现秒级呼出。
+
+在对话框中：
+
+- 默认状态下 (🦞 按钮灰暗)：模型处于**纯文本聊天模式**。
+- **点亮 🦞 按钮**：进入 Slicer 接管操作模式！此时允许 AI 自主调用 Slicer 内置 API 分析并修改当前场景。
+
+在自然语言中输入您的请求，AI 便会在后台开始奇妙的魔法！
 
 ### 2. 连接外部 AI 客户端 (MCP)
 如果您更习惯用诸如 Cursor、OpenCode 或是 Claude Desktop 来接管控制 3D Slicer：
@@ -86,10 +95,10 @@ SlicerClaw 建立在其背后整个蓬勃向上的 3D Slicer 的 AI 革新生态
 
 ## 🙏 鸣谢 `AI`
 
+sk-sp-59c0b9fbc0684b438780b9065fb2fb7a
+
 特别感谢以下为本项目体验与代码重构全流程提供不可思议支持的技术力量：
 
 * **Antigravity (Google DeepMind)** — 自动理解需求、独立重写了全套全新架构面板并亲手构建了内置极速 MCP 大杀器服务器底层逻辑的超级 AI 编码引擎！
 * **OpenCode** — 搭建了极其优秀的 AI IDE 集成桥接环境，使得外部对话中枢能够丝滑、毫无阻力地接管并控制 3D Slicer 的虚拟世界。
 * **GLM-5 (智谱 AI)** — 赋予这一切原生交互以毫无妥协的中文逻辑推理与原生复杂 Tool Calling 执行能力的顶级基座大模型。
-
-[EOF]

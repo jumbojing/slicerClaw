@@ -27,6 +27,24 @@ Once configured with an API Key and Base URL, you can press Ctrl+I (or Cmd+I) fr
 anywhere in Slicer to bring up the Spotlight Chat and instruct the AI.
 """
         self.parent.acknowledgementText = "Built with passion."
+        
+        # 延迟初始化全局快捷键，使 Slicer 启动后即可按 Cmd+I 唤醒
+        if not slicer.app.commandOptions().noMainWindow:
+            self._initRetryCount = 0
+            qt.QTimer.singleShot(2000, self.initializeGlobalShortcut)
+
+    def initializeGlobalShortcut(self):
+        # 确保 mainWindow 已创建，否则重试
+        if slicer.util.mainWindow() is None:
+            self._initRetryCount = getattr(self, '_initRetryCount', 0) + 1
+            if self._initRetryCount < 30:
+                qt.QTimer.singleShot(1000, self.initializeGlobalShortcut)
+            else:
+                print("[SlicerClaw] Warning: mainWindow not available after 30 retries, giving up.")
+            return
+        if not hasattr(slicer, "slicerclaw_logic"):
+            slicer.slicerclaw_logic = SlicerClawLogic()
+        slicer.slicerclaw_logic.ensureUiHook()
 
 # ==============================================================================
 # SlicerClawWidget (The Settings UI)
@@ -34,7 +52,11 @@ anywhere in Slicer to bring up the Spotlight Chat and instruct the AI.
 class SlicerClawWidget(ScriptedLoadableModuleWidget):
     def setup(self):
         ScriptedLoadableModuleWidget.setup(self)
-        self.logic = SlicerClawLogic()
+        if hasattr(slicer, "slicerclaw_logic"):
+            self.logic = slicer.slicerclaw_logic
+        else:
+            self.logic = SlicerClawLogic()
+            slicer.slicerclaw_logic = self.logic
 
         # --- Section A: Spotlight AI Settings ---
         settingsCollapsibleButton = ctk.ctkCollapsibleButton()
@@ -216,7 +238,7 @@ class SlicerClawLogic(ScriptedLoadableModuleLogic):
         self.api_model = settings.value("SlicerClaw/ModelName", "glm-5")
         self.api_lang = settings.value("SlicerClaw/Language", "中文 (Chinese)")
         
-        lang_instruction = "Please communicate in Chinese." if "中文" in self.api_lang else "Please communicate in English."
+        lang_instruction = "Please communicate in English."
         sys_msg = f"You are a helpful AI assistant operating directly inside 3D Slicer. You can call tools to query the scene and execute python code natively. Be concise, precise, and polite. {lang_instruction}"
         
         if not self.chatHistory or self.chatHistory[0]["role"] != "system":
@@ -228,32 +250,76 @@ class SlicerClawLogic(ScriptedLoadableModuleLogic):
             slicer.ai_spotlight_chat.update_language(self.api_lang)
 
     def ensureUiHook(self):
+        mainWin = slicer.util.mainWindow()
+        if mainWin is None:
+            print("[SlicerClaw] mainWindow not ready, skipping UI hook.")
+            return
+
+        # 如果已经存在旧的实例，先销毁它（这样在 Reload 模块时能更新 UI）
+        if hasattr(slicer, "ai_spotlight_chat") and slicer.ai_spotlight_chat is not None:
+            try:
+                slicer.ai_spotlight_chat.hide()
+                slicer.ai_spotlight_chat.deleteLater()
+            except Exception:
+                pass
+            slicer.ai_spotlight_chat = None
+
         if not hasattr(slicer, "ai_spotlight_chat") or slicer.ai_spotlight_chat is None:
             slicer.ai_spotlight_chat = SpotlightChat(self)
 
-        toolbar = slicer.util.mainWindow().findChild("QToolBar", "AICopilotToolBar")
-        if not toolbar:
-            toolbar = slicer.util.mainWindow().addToolBar("AI Copilot")
-            toolbar.setObjectName("AICopilotToolBar")
-            ai_action = toolbar.addAction("🧠 唤起 AI 大脑 (Ctrl+I)")
-            ai_action.setObjectName("AIChatAction")
-            ai_action.connect("triggered()", slicer.ai_spotlight_chat.toggle_visibility)
+        toolbar = mainWin.findChild("QToolBar", "AICopilotToolBar")
+        if toolbar:
+            # 清理旧工具栏，防止残留的 action 连接到已被销毁的旧实例
+            toolbar.clear()
+            mainWin.removeToolBar(toolbar)
+            toolbar.deleteLater()
+            
+        toolbar = mainWin.addToolBar("AI Copilot")
+        toolbar.setObjectName("AICopilotToolBar")
+        ai_action = toolbar.addAction("🧠 Spotlight Chat (Cmd/Ctrl+I)")
+        ai_action.setObjectName("AIChatAction")
+        ai_action.connect("triggered()", slicer.ai_spotlight_chat.toggle_visibility)
 
     def doChatLoop(self, user_msg):
         if not self.api_key:
             print("\n[AI Copilot Error] Please configure the API Key in the SlicerClaw module settings first!")
             return
-            
+        
+        # 检查是否为 Slicer 操作命令 (以 /slicerClaw 开头)
+        is_slicer_command = user_msg.strip().startswith("/slicerClaw")
+        if is_slicer_command:
+            # 移除命令前缀
+            actual_msg = user_msg.strip()[len("/slicerClaw"):].strip()
+            if not actual_msg:
+                actual_msg = user_msg  # 如果只有前缀，保留原消息
+            else:
+                user_msg = actual_msg  # 更新显示消息
+        
         print(f"\n[You]: {user_msg}\n")
-        self.chatHistory.append({"role": "user", "content": user_msg})
+        
+        if is_slicer_command:
+            # Slicer 操作模式：添加系统提示
+            slicer_hint = "\n[Mode: Slicer Command - Tools enabled]"
+            self.chatHistory.append({"role": "user", "content": user_msg + slicer_hint})
+        else:
+            # 纯聊天模式：不带工具
+            self.chatHistory.append({"role": "user", "content": user_msg})
         
         for _ in range(5):
-            payload = {
-                "model": self.api_model,
-                "messages": self.chatHistory,
-                "tools": OPENAI_TOOLS_SCHEMA,
-                "tool_choice": "auto"
-            }
+            # 根据模式决定是否启用工具
+            if is_slicer_command:
+                payload = {
+                    "model": self.api_model,
+                    "messages": self.chatHistory,
+                    "tools": OPENAI_TOOLS_SCHEMA,
+                    "tool_choice": "auto"
+                }
+            else:
+                # 纯聊天模式：不传递 tools，限制为 chat 状态
+                payload = {
+                    "model": self.api_model,
+                    "messages": self.chatHistory
+                }
             
             data = json.dumps(payload).encode('utf-8')
             req = urllib.request.Request(self.api_url, data=data)
@@ -261,7 +327,7 @@ class SlicerClawLogic(ScriptedLoadableModuleLogic):
             req.add_header('Authorization', f'Bearer {self.api_key}')
             
             try:
-                print("⏳ 正在思考...")
+                print("⏳ Thinking...")
                 slicer.app.processEvents()
                 response = urllib.request.urlopen(req, timeout=120)
                 res_json = json.loads(response.read().decode('utf-8'))
@@ -278,7 +344,7 @@ class SlicerClawLogic(ScriptedLoadableModuleLogic):
                     for tc in msg['tool_calls']:
                         f_name = tc['function']['name']
                         f_args = json.loads(tc['function']['arguments'])
-                        print(f"🔧 [执行工具]: {f_name}({f_args})")
+                        print(f"🔧 [Tool Call]: {f_name}({f_args})")
                         
                         try:
                             if f_name == "list_nodes":
@@ -303,10 +369,10 @@ class SlicerClawLogic(ScriptedLoadableModuleLogic):
                             "content": str(result)
                         }
                         self.chatHistory.append(tool_msg)
-                        print(f"✅ 工具返回结果已发往大模型，等待下一步指示...\n")
+                        print(f"✅ Tool results sent back. Waiting for the thoughts of LLM...\n")
                     continue
                 else:
-                    hint = "👉 (按 Ctrl+I 继续对话...)" if "中文" in getattr(self, "api_lang", "中文") else "👉 (Press Ctrl+I to continue...)"
+                    hint = "👉 (Press Ctrl+I to continue...)"
                     print(f"\n{hint}\n")
                     break
                     
@@ -316,12 +382,12 @@ class SlicerClawLogic(ScriptedLoadableModuleLogic):
                     err_body = e.read().decode('utf-8')
                 except:
                     pass
-                print(f"\n❌ [Error] 请求大模型失败 ({e.code}): {e.reason}\n详细信息: {err_body}")
+                print(f"\n❌ [Error] API Request Failed ({e.code}): {e.reason}\nDetails: {err_body}")
                 self.chatHistory.pop()
                 slicer.util.errorDisplay(f"API Request Failed: {e.code} {e.reason}\n{err_body}")
                 break
             except Exception as e:
-                print(f"\n❌ [Error] 请求大模型失败: {e}")
+                print(f"\n❌ [Error] API Request Failed: {e}")
                 self.chatHistory.pop()
                 slicer.util.errorDisplay(f"API Request Failed:\n{str(e)}")
                 break
@@ -333,6 +399,7 @@ class SpotlightChat(qt.QWidget):
     def __init__(self, logic):
         super().__init__(None) 
         self.logic = logic
+        self._first_show = True # 标记控制首次加载的介绍信息
         self.setWindowFlags(qt.Qt.FramelessWindowHint | qt.Qt.WindowStaysOnTopHint | qt.Qt.Tool)
         self.setAttribute(qt.Qt.WA_TranslucentBackground)
         
@@ -355,7 +422,6 @@ class SpotlightChat(qt.QWidget):
         container_layout.addWidget(icon_label)
         
         self.input_edit = qt.QLineEdit()
-        self.update_language(self.logic.api_lang if hasattr(self.logic, 'api_lang') else "中文 (Chinese)")
         self.input_edit.setStyleSheet("""
             QLineEdit {
                 background: transparent;
@@ -365,24 +431,76 @@ class SpotlightChat(qt.QWidget):
                 qproperty-cursorPosition: 0;
             }
         """)
-        self.input_edit.setMinimumWidth(500)
+        self.input_edit.setMinimumWidth(450)
         self.input_edit.setMinimumHeight(40)
         container_layout.addWidget(self.input_edit)
-        main_layout.addWidget(self.container)
         
+        # Slicer 操作模式切换按钮
+        self.slicer_mode_btn = qt.QPushButton("🦞")
+        self.slicer_mode_btn.setCheckable(True)
+        self.slicer_mode_btn.setChecked(False)  # 默认关闭（纯聊天模式）
+        self.slicer_mode_btn.setFixedSize(40, 36)
+        self.slicer_mode_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                font-size: 22px;
+                border: 2px solid rgba(255, 255, 255, 60);
+                border-radius: 8px;
+                padding: 2px;
+                opacity: 0.4;
+            }
+            QPushButton:hover {
+                border: 2px solid rgba(255, 255, 255, 120);
+                background: rgba(255, 255, 255, 20);
+            }
+            QPushButton:checked {
+                border: 2px solid rgba(255, 140, 60, 220);
+                background: rgba(255, 100, 30, 60);
+            }
+            QPushButton:checked:hover {
+                border: 2px solid rgba(255, 160, 80, 255);
+                background: rgba(255, 120, 40, 80);
+            }
+        """)
+        self.slicer_mode_btn.connect("toggled(bool)", self.on_slicer_mode_toggled)
+        container_layout.addWidget(self.slicer_mode_btn)
+        
+        self.update_language(self.logic.api_lang if hasattr(self.logic, 'api_lang') else "中文 (Chinese)")
+        
+        main_layout.addWidget(self.container)
         self.input_edit.connect("returnPressed()", self.on_enter)
 
-    def update_language(self, lang):
-        if "中文" in lang:
-            self.input_edit.setPlaceholderText("告诉 AI 你想做什么... (按回车发送, 按 Esc 关闭)")
-        else:
-            self.input_edit.setPlaceholderText("Tell AI what to do... (Press Enter to send, Esc to close)")
-        
+        # 确保旧的快捷键被清理
+        if hasattr(slicer, "slicerclaw_shortcut") and slicer.slicerclaw_shortcut:
+            try:
+                slicer.slicerclaw_shortcut.disconnect("activated()")
+                slicer.slicerclaw_shortcut.setParent(None)
+                slicer.slicerclaw_shortcut.deleteLater()
+            except Exception:
+                pass
+            
         self.shortcut = qt.QShortcut(qt.QKeySequence("Ctrl+I"), slicer.util.mainWindow())
+        self.shortcut.setContext(qt.Qt.ApplicationShortcut)  # 关键：避免被 Slicer 内部面板拦截
         self.shortcut.connect("activated()", self.toggle_visibility)
+        slicer.slicerclaw_shortcut = self.shortcut
 
         # Global hook to intercept module loads just in case
         self._obs = slicer.mrmlScene.AddObserver(slicer.mrmlScene.StartImportEvent, self._keepAlive)
+
+    def update_language(self, lang):
+        # Override with English consistently
+        self.input_edit.setPlaceholderText("Chat with AI... | 🦞 Slicer Mode")
+        self.slicer_mode_btn.setToolTip(
+            "Dim: Chat mode only\n"
+            "Lit: Slicer operation mode (tools enabled)"
+        )
+
+    def on_slicer_mode_toggled(self, checked):
+        if checked and getattr(self, "_first_slicer_mode", True):
+            self._first_slicer_mode = False
+            msg = "⚠️ 🦞 Slicer Mode Enabled.\nThe AI can now execute Python code modifying your scene! Proceed with caution."
+            slicer.util.warningDisplay(msg, windowTitle="SlicerClaw Security")
+            print(f"\n{msg}\n")
 
     def _keepAlive(self, caller, event):
         pass # To satisfy python garbage collection
@@ -390,33 +508,55 @@ class SpotlightChat(qt.QWidget):
     def keyPressEvent(self, event):
         if event.key() == qt.Qt.Key_Escape:
             self.hide()
-        super().keyPressEvent(event)
+        # PythonQt 中无法调用 super/父类的 keyPressEvent，
+        # 直接 accept 所有按键事件以避免 AttributeError
+        event.accept()
 
     def toggle_visibility(self):
-        if self.isVisible():
-            self.hide()
-        else:
-            self.show_center()
+        try:
+            if self.isVisible():
+                self.hide()
+            else:
+                self.show_center()
+        except ValueError:
+            # Handle "Trying to call 'isVisible' on a destroyed QWidget object"
+            # which happens if old shortcuts linger after module reload.
+            pass
 
     def show_center(self):
         self.input_edit.clear()
         main_window = slicer.util.mainWindow()
         if main_window:
             geom = main_window.geometry
-            w = 600
+            w = 680
             h = 100
             x = geom.x() + (geom.width() - w) // 2
             y = geom.y() + (geom.height() - h) // 3
             self.setGeometry(x, y, w, h)
         self.show()
         self.raise_()
+        self.activateWindow() # 关键：在 macOS 无边框窗口需要强制激活
         self.input_edit.setFocus()
+        
+        # 首次展示出欢迎信息
+        if getattr(self, "_first_show", False):
+            self._first_show = False
+            welcome_msg = ("\n👋 Welcome to SlicerClaw!\n"
+                           "• Default: Pure text chat mode.\n"
+                           "• Click the 🦞 button: Slicer Mode (grants AI power to modify scenes).\n"
+                           "• Press Ctrl+I or Cmd+I to summon this window anytime.\n")
+            print(welcome_msg)
 
     def on_enter(self):
         text = self.input_edit.text.strip()
         if not text:
             return
         self.hide()
+        # 根据🦞按钮状态决定模式
+        if self.slicer_mode_btn.checked:
+            # Slicer 操作模式：自动添加前缀
+            if not text.startswith("/slicerClaw"):
+                text = "/slicerClaw " + text
         qt.QTimer.singleShot(50, lambda: self.logic.doChatLoop(text))
 
 
@@ -518,17 +658,6 @@ OPENAI_TOOLS_SCHEMA = [
         }
     }
 ]
-
-# Provide automatic initialization upon Slicer startup if the module is loaded but UI isn't displayed
-def __init_copilot__():
-    try:
-        if not hasattr(slicer, "ai_spotlight_chat"):
-            logic = SlicerClawLogic()
-            logic.ensureUiHook()
-    except Exception as e:
-        print(f"Failed to auto-init SlicerClaw: {e}")
-
-qt.QTimer.singleShot(100, __init_copilot__)
 
 # ==============================================================================
 # Embedded Slicer MCP Server (Port 2016)
